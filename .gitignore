@@ -1,0 +1,58 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+auth.json
+
+# Sensitive local docs (use docs/test-login-creds.example.md as template)
+docs/test-login-creds.md
+
+# Database dumps (local reference only; schema is in Laravel migrations)
+db/*.sql
+
+# Backend (Laravel)
+backend/vendor/
+backend/node_modules/
+backend/public/build/
+backend/public/hot/
+backend/public/storage
+backend/storage/*.key
+backend/storage/pail/
+backend/.phpunit.cache/
+backend/.phpunit.result.cache
+backend/Homestead.json
+backend/Homestead.yaml
+
+# Frontend (Vite / React)
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Test / coverage
+coverage/
+.nyc_output/
