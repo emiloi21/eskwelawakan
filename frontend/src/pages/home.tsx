@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
 import api from '@/lib/api';
 import { Container } from '@/components/public/container';
 import { Wrapper } from '@/components/public/wrapper';
 import { SectionBadge } from '@/components/public/section-badge';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import {
   ArrowRight,
@@ -71,30 +73,36 @@ function sliderBtnClass(variant: string): string {
   if (variant === 'primary') return buttonVariants({ size: 'lg' });
   if (variant === 'secondary') return buttonVariants({ size: 'lg', variant: 'secondary' });
   if (variant === 'ghost') return cn(buttonVariants({ size: 'lg', variant: 'ghost' }), 'text-white');
-  // outline — white border style on dark bg
   return cn(
     buttonVariants({ size: 'lg', variant: 'outline' }),
     'border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white',
   );
 }
 
+// ─── Animation Variants ───────────────────────────────────────────────
+const fadeUpVariant = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+};
+
 // ═══════════════════════════════════════════════════════════════════════
 export default function HomePage() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
-  const { data: sliders = [] } = useQuery<Slider[]>({
+  const { data: sliders = [], isLoading: slidersLoading } = useQuery<Slider[]>({
     queryKey: ['public-sliders'],
     queryFn: () => api.get('/public/sliders').then((r) => r.data),
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: events = [] } = useQuery<CmsEvent[]>({
+  const { data: events = [], isLoading: eventsLoading } = useQuery<CmsEvent[]>({
     queryKey: ['public-events-home'],
     queryFn: () => api.get('/public/events').then((r) => r.data),
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: news = [] } = useQuery<CmsNews[]>({
+  const { data: news = [], isLoading: newsLoading } = useQuery<CmsNews[]>({
     queryKey: ['public-news-home'],
     queryFn: () => api.get('/public/news').then((r) => r.data),
     staleTime: 5 * 60 * 1000,
@@ -128,94 +136,103 @@ export default function HomePage() {
     setCurrentSlide((prev) => (prev - 1 + activeSliders.length) % activeSliders.length);
   }, [activeSliders.length]);
 
+  // Auto-play slider, pausing on hover
   useEffect(() => {
-    if (activeSliders.length <= 1) return;
+    if (activeSliders.length <= 1 || isPaused) return;
     const timer = setInterval(nextSlide, 6000);
     return () => clearInterval(timer);
-  }, [nextSlide, activeSliders.length]);
+  }, [nextSlide, activeSliders.length, isPaused]);
 
   return (
     <section className="relative flex w-full flex-col items-center justify-center">
+      
       {/* ═══ Hero Image Slider ═══ */}
-      <div className="relative w-full overflow-hidden min-h-[350px] sm:min-h-[420px] md:min-h-[520px]">
-        {activeSliders.map((slide, idx) => {
-          const overlayHex = `${slide.bg_overlay_color}${Math.round(
-            (slide.bg_overlay_opacity / 100) * 255,
-          ).toString(16).padStart(2, '0')}`;
-          const alignClass =
-            slide.text_align === 'left'
-              ? 'text-left items-start'
-              : slide.text_align === 'right'
-              ? 'text-right items-end'
+      <div 
+        className="relative w-full overflow-hidden min-h-[350px] sm:min-h-[420px] md:min-h-[520px]"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
+        {slidersLoading ? (
+           <Skeleton className="absolute inset-0 w-full h-full rounded-none" />
+        ) : (
+          activeSliders.map((slide, idx) => {
+            const overlayHex = `${slide.bg_overlay_color}${Math.round(
+              (slide.bg_overlay_opacity / 100) * 255,
+            ).toString(16).padStart(2, '0')}`;
+            
+            const alignClass =
+              slide.text_align === 'left' ? 'text-left items-start'
+              : slide.text_align === 'right' ? 'text-right items-end'
               : 'text-center items-center';
-          const flexAlign =
-            slide.text_align === 'left'
-              ? 'justify-start'
-              : slide.text_align === 'right'
-              ? 'justify-end'
+              
+            const flexAlign =
+              slide.text_align === 'left' ? 'justify-start'
+              : slide.text_align === 'right' ? 'justify-end'
               : 'justify-center';
 
-          return (
-            <div
-              key={slide.id}
-              className={cn(
-                'absolute inset-0 flex items-center justify-center transition-opacity duration-700',
-                idx === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0',
-              )}
-            >
-              {/* Background */}
+            return (
               <div
-                className="absolute inset-0"
-                style={{ backgroundColor: slide.bg_color }}
-              />
-              {slide.bg_image_url && (
-                <img
-                  src={slide.bg_image_url}
-                  alt=""
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
-              )}
-              {/* Overlay */}
-              <div
-                className="absolute inset-0"
-                style={{ backgroundColor: overlayHex }}
-              />
-
-              {/* Content */}
-              <div
+                key={slide.id}
                 className={cn(
-                  'relative z-10 mx-auto w-full max-w-screen-xl px-6 flex flex-col',
-                  alignClass,
+                  'absolute inset-0 flex items-center justify-center transition-opacity duration-700',
+                  idx === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0',
                 )}
               >
-                <h1 className="text-3xl font-bold leading-tight text-white sm:text-4xl md:text-5xl lg:text-6xl">
-                  {slide.title}
-                </h1>
-                {slide.subtitle && (
-                  <p className="mt-4 max-w-2xl text-base text-white/80 sm:text-lg md:text-xl">
-                    {slide.subtitle}
-                  </p>
+                <div className="absolute inset-0" style={{ backgroundColor: slide.bg_color }} />
+                {slide.bg_image_url && (
+                  <img
+                    src={slide.bg_image_url}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
                 )}
-                {(slide.btn1_label || slide.btn2_label) && (
-                  <div className={cn('mt-8 flex flex-wrap gap-4', flexAlign)}>
-                    {slide.btn1_label && slide.btn1_link && (
-                      <Link to={slide.btn1_link} className={sliderBtnClass(slide.btn1_variant)}>
-                        {slide.btn1_label} <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    )}
-                    {slide.btn2_label && slide.btn2_link && (
-                      <Link to={slide.btn2_link} className={sliderBtnClass(slide.btn2_variant)}>
-                        {slide.btn2_label}
-                      </Link>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
+                <div className="absolute inset-0" style={{ backgroundColor: overlayHex }} />
 
-        {activeSliders.length > 1 && (
+                <div className={cn('relative z-10 mx-auto w-full max-w-screen-xl px-6 flex flex-col', alignClass)}>
+                  <motion.h1 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={idx === currentSlide ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                    className="text-3xl font-bold leading-tight text-white sm:text-4xl md:text-5xl lg:text-6xl"
+                  >
+                    {slide.title}
+                  </motion.h1>
+                  {slide.subtitle && (
+                    <motion.p 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={idx === currentSlide ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                      transition={{ duration: 0.5, delay: 0.3 }}
+                      className="mt-4 max-w-2xl text-base text-white/80 sm:text-lg md:text-xl"
+                    >
+                      {slide.subtitle}
+                    </motion.p>
+                  )}
+                  {(slide.btn1_label || slide.btn2_label) && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={idx === currentSlide ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                      transition={{ duration: 0.5, delay: 0.4 }}
+                      className={cn('mt-8 flex flex-wrap gap-4', flexAlign)}
+                    >
+                      {slide.btn1_label && slide.btn1_link && (
+                        <Link to={slide.btn1_link} className={sliderBtnClass(slide.btn1_variant)}>
+                          {slide.btn1_label} <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
+                      )}
+                      {slide.btn2_label && slide.btn2_link && (
+                        <Link to={slide.btn2_link} className={sliderBtnClass(slide.btn2_variant)}>
+                          {slide.btn2_label}
+                        </Link>
+                      )}
+                    </motion.div>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+
+        {activeSliders.length > 1 && !slidersLoading && (
           <>
             <button
               onClick={prevSlide}
@@ -231,7 +248,6 @@ export default function HomePage() {
             >
               <ChevronRight className="h-6 w-6" />
             </button>
-
             <div className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 gap-2">
               {activeSliders.map((_, idx) => (
                 <button
@@ -252,30 +268,42 @@ export default function HomePage() {
       {/* ═══ Quick Links ═══ */}
       <Wrapper className="py-12">
         <Container>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            variants={fadeUpVariant}
+            className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6"
+          >
             {quickLinks.map((link) => (
               <Link
                 key={link.label}
                 to={link.to}
                 className={cn(
-                  'group flex flex-col items-center gap-3 rounded-xl border p-5 text-center transition-all hover:shadow-md',
+                  'group flex flex-col items-center gap-3 rounded-xl border p-5 text-center transition-all hover:-translate-y-1 hover:shadow-md',
                   link.highlight
                     ? 'border-primary/30 bg-primary/5 hover:bg-primary/10'
                     : 'border-border bg-card hover:bg-accent',
                 )}
               >
-                <link.icon className={cn('h-7 w-7', link.highlight ? 'text-primary' : 'text-muted-foreground group-hover:text-primary')} />
+                <link.icon className={cn('h-7 w-7 transition-colors', link.highlight ? 'text-primary' : 'text-muted-foreground group-hover:text-primary')} />
                 <span className="text-sm font-medium">{link.label}</span>
               </Link>
             ))}
-          </div>
+          </motion.div>
         </Container>
       </Wrapper>
 
       {/* ═══ Upcoming Events ═══ */}
-      <Wrapper className="py-12" id="events">
+      <Wrapper className="py-12 bg-muted/30" id="events">
         <Container>
-          <div className="flex flex-col items-center text-center md:flex-row md:items-start md:justify-between md:text-left">
+          <motion.div 
+             initial="hidden"
+             whileInView="visible"
+             viewport={{ once: true }}
+             variants={fadeUpVariant}
+             className="flex flex-col items-center text-center md:flex-row md:items-start md:justify-between md:text-left"
+          >
             <div>
               <SectionBadge title="Upcoming Events" />
               <h2 className="mt-4 text-3xl font-semibold lg:text-4xl">What's happening at SVHS</h2>
@@ -284,38 +312,57 @@ export default function HomePage() {
             <Link to="/calendar" className={cn(buttonVariants({ variant: 'outline' }), 'mt-4 md:mt-0')}>
               View Full Calendar <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
-          </div>
+          </motion.div>
         </Container>
+        
         <Container delay={0.3}>
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {upcomingEvents.length === 0 ? (
+            {eventsLoading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-[100px] w-full rounded-xl" />
+              ))
+            ) : upcomingEvents.length === 0 ? (
               <p className="col-span-4 text-center text-muted-foreground text-sm py-8">No upcoming events.</p>
             ) : upcomingEvents.map((event) => (
-              <Card key={event.id} className="border-none bg-gradient-to-br from-background to-muted/30 shadow-sm transition-all hover:shadow-md dark:to-muted/10">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-primary">
-                    <Calendar className="h-3.5 w-3.5" />
-                    {new Date(event.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </div>
-                  <CardTitle className="text-base leading-snug">{event.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <MapPin className="h-3 w-3" />
-                    {event.location ?? '—'}
-                  </div>
-                </CardContent>
-              </Card>
+              <motion.div
+                key={event.id}
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4 }}
+              >
+                <Card className="border-none bg-background shadow-sm transition-all hover:-translate-y-1 hover:shadow-md h-full">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                      <Calendar className="h-3.5 w-3.5" />
+                      {new Date(event.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </div>
+                    <CardTitle className="text-base leading-snug">{event.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <MapPin className="h-3 w-3" />
+                      {event.location ?? 'TBA'}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
           </div>
         </Container>
       </Wrapper>
 
       {/* ═══ Latest News ═══ */}
-      <Wrapper className="relative py-12" id="news">
+      <Wrapper className="relative py-16" id="news">
         <div className="hidden md:block absolute -right-1/3 top-0 -z-10 h-72 w-72 rounded-full bg-primary/20 blur-[10rem]" />
         <Container>
-          <div className="flex flex-col items-center text-center md:flex-row md:items-start md:justify-between md:text-left">
+          <motion.div 
+             initial="hidden"
+             whileInView="visible"
+             viewport={{ once: true }}
+             variants={fadeUpVariant}
+             className="flex flex-col items-center text-center md:flex-row md:items-start md:justify-between md:text-left"
+          >
             <div>
               <SectionBadge title="Latest News" />
               <h2 className="mt-4 text-3xl font-semibold lg:text-4xl">News & Announcements</h2>
@@ -324,32 +371,49 @@ export default function HomePage() {
             <Link to="/news" className={cn(buttonVariants({ variant: 'outline' }), 'mt-4 md:mt-0')}>
               View All News <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
-          </div>
+          </motion.div>
         </Container>
+
         <Container delay={0.3}>
           <div className="mt-8 grid gap-6 md:grid-cols-3">
-            {latestNews.length === 0 ? (
+            {newsLoading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-[300px] w-full rounded-xl" />
+              ))
+            ) : latestNews.length === 0 ? (
               <p className="col-span-3 text-center text-muted-foreground text-sm py-8">No news published yet.</p>
             ) : latestNews.map((item) => (
-              <Card key={item.id} className="border-none bg-gradient-to-br from-background to-muted/30 shadow-sm transition-all hover:shadow-md dark:to-muted/10">
-                <div className="flex h-40 items-center justify-center rounded-t-lg bg-gradient-to-br from-muted to-muted/50 overflow-hidden">
-                  {item.cover_image ? (
-                    <img src={`http://localhost:8000/storage/${item.cover_image}`} alt={item.title} className="h-full w-full object-cover" />
-                  ) : (
-                    <Newspaper className="h-10 w-10 text-muted-foreground/40" />
-                  )}
-                </div>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    {item.published_at ? new Date(item.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5 }}
+              >
+                <Card className="border-none bg-gradient-to-br from-background to-muted/30 shadow-sm transition-all hover:shadow-lg dark:to-muted/10 h-full overflow-hidden group">
+                  <div className="flex h-48 items-center justify-center bg-gradient-to-br from-muted to-muted/50 overflow-hidden relative">
+                    {item.cover_image ? (
+                      <img 
+                        src={`/storage/${item.cover_image}`} 
+                        alt={item.title} 
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                      />
+                    ) : (
+                      <Newspaper className="h-10 w-10 text-muted-foreground/40 transition-transform duration-500 group-hover:scale-110" />
+                    )}
                   </div>
-                  <CardTitle className="text-base leading-snug">{item.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <p className="line-clamp-2 text-sm text-muted-foreground">{item.excerpt}</p>
-                </CardContent>
-              </Card>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      {item.published_at ? new Date(item.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                    </div>
+                    <CardTitle className="text-lg leading-snug group-hover:text-primary transition-colors">{item.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="line-clamp-2 text-sm text-muted-foreground">{item.excerpt}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
           </div>
         </Container>
@@ -358,7 +422,13 @@ export default function HomePage() {
       {/* ═══ School Stats ═══ */}
       <Wrapper className="py-12">
         <Container>
-          <div className="rounded-2xl bg-gradient-to-br from-primary/5 to-primary/10 p-8 ring-1 ring-border md:p-12">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="rounded-2xl bg-gradient-to-br from-primary/5 to-primary/10 p-8 ring-1 ring-border md:p-12"
+          >
             <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
               {[
                 { label: 'Students', value: '2,500+', icon: GraduationCap },
@@ -367,37 +437,45 @@ export default function HomePage() {
                 { label: 'Years of Excellence', value: '25+', icon: Calendar },
               ].map((stat) => (
                 <div key={stat.label} className="flex flex-col items-center gap-2 text-center">
-                  <stat.icon className="h-8 w-8 text-primary" />
+                  <div className="p-3 bg-primary/10 rounded-full mb-2">
+                    <stat.icon className="h-8 w-8 text-primary" />
+                  </div>
                   <span className="text-3xl font-bold">{stat.value}</span>
                   <span className="text-sm text-muted-foreground">{stat.label}</span>
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
         </Container>
       </Wrapper>
 
       {/* ═══ Enroll Now CTA ═══ */}
       <Wrapper className="py-16">
         <Container>
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary to-primary/80 p-8 text-center text-white md:p-16">
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUpVariant}
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary to-primary/80 p-8 text-center text-white md:p-16 shadow-xl"
+          >
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2260%22%20height%3D%2260%22%3E%3Cpath%20d%3D%22M0%200h60v60H0z%22%20fill%3D%22none%22%20stroke%3D%22rgba(255%2C255%2C255%2C0.08)%22%20stroke-width%3D%221%22%2F%3E%3C%2Fsvg%3E')] bg-repeat" />
             <div className="relative z-10">
               <GraduationCap className="mx-auto h-12 w-12" />
               <h2 className="mt-4 text-3xl font-bold md:text-4xl">Ready to Join SVHS?</h2>
-              <p className="mx-auto mt-4 max-w-xl text-lg text-white/80">
+              <p className="mx-auto mt-4 max-w-xl text-lg text-white/90">
                 Enrollment for SY 2026–2027 is now open. Secure your slot today and be part of the Vincentian family!
               </p>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-                <Link to="/apply" className={cn(buttonVariants({ size: 'lg', variant: 'secondary' }))}>
+                <Link to="/apply" className={cn(buttonVariants({ size: 'lg', variant: 'secondary' }), 'hover:scale-105 transition-transform')}>
                   Enroll Now <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
-                <Link to="/contact" className={cn(buttonVariants({ size: 'lg', variant: 'outline' }), 'border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white')}>
+                <Link to="/contact" className={cn(buttonVariants({ size: 'lg', variant: 'outline' }), 'border-white/30 bg-transparent text-white hover:bg-white/20 hover:text-white transition-colors')}>
                   Contact Admissions
                 </Link>
               </div>
             </div>
-          </div>
+          </motion.div>
         </Container>
       </Wrapper>
     </section>

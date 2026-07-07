@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { GraduationCap, Loader2, Eye, EyeOff, Users } from 'lucide-react';
+import { GraduationCap, Loader2, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -29,11 +29,20 @@ export default function LoginPage() {
       const user = await login(username, password);
       const destination = from || getHomePathForRole(user.access);
       navigate(destination, { replace: true });
-    } catch (err: unknown) {
-      const axiosError = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
-      const msg = axiosError.response?.data?.errors?.username?.[0]
-        || axiosError.response?.data?.message
-        || 'Login failed. Please try again.';
+    } catch (err: any) {
+      // Improved Error Catching to show exactly what is wrong
+      const status = err.response?.status;
+      
+      let msg = 'Login failed. Please try again.';
+      
+      if (status === 500) {
+        msg = '500 Internal Server Error: The database is not fully set up or the backend crashed. Check Laravel logs.';
+      } else {
+        msg = err.response?.data?.errors?.username?.[0]
+          || err.response?.data?.message
+          || 'Invalid credentials. Please try again.';
+      }
+      
       setError(msg);
     }
   };
@@ -59,7 +68,7 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive font-medium">
                 {error}
               </div>
             )}
@@ -73,6 +82,7 @@ export default function LoginPage() {
                 placeholder="Enter your username"
                 required
                 autoFocus
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -85,13 +95,15 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   required
+                  disabled={isLoading}
                   className="pr-10"
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground disabled:opacity-50"
                   onClick={() => setShowPassword(!showPassword)}
                   tabIndex={-1}
+                  disabled={isLoading}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>

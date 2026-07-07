@@ -1626,7 +1626,9 @@ export default function ClassDetailPage() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog> */}
+      </Dialog>
+
+      {/* ── Announcement Create/Edit Dialog ── */}
       <Dialog open={announceDialogOpen} onOpenChange={setAnnounceDialogOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
