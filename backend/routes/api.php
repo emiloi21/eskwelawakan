@@ -91,7 +91,7 @@ Route::get('/kiosk/slides', [KioskController::class, 'publicSlides']);
 Route::get('/kiosk/recent-logs', [KioskController::class, 'recentLogs']);
 
 // Public routes
-Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
+Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login')->name('login');
 Route::get('/school-info', [SchoolPreferenceController::class, 'publicInfo']);
 
 // Public CMS (read-only, no auth)
@@ -685,14 +685,14 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::delete('/positions/{publicId}',[HrmsController::class, 'destroyPosition']);
 
         // Personnel
-        Route::get('/personnel',                            [HrmsController::class, 'personnel']);
-        Route::post('/personnel',                           [HrmsController::class, 'storePersonnel']);
-        Route::get('/personnel/{publicId}',                 [HrmsController::class, 'showPersonnel']);
-        Route::put('/personnel/{publicId}',                 [HrmsController::class, 'updatePersonnel']);
-        Route::delete('/personnel/{publicId}',              [HrmsController::class, 'destroyPersonnel']);
-        Route::post('/personnel/{publicId}/photo',          [HrmsController::class, 'uploadPersonnelPhoto']);
-        Route::post('/personnel/{publicId}/grant-access',    [HrmsController::class, 'grantAccess']);
-        Route::patch('/personnel/{publicId}/department',     [HrmsController::class, 'assignDepartment']);
+        Route::get('/personnel',                                    [HrmsController::class, 'personnel']);
+        Route::post('/personnel',                                   [HrmsController::class, 'storePersonnel']);
+        Route::get('/personnel/{publicId}',                         [HrmsController::class, 'showPersonnel']);
+        Route::put('/personnel/{publicId}',                         [HrmsController::class, 'updatePersonnel']);
+        Route::delete('/personnel/{publicId}',                      [HrmsController::class, 'destroyPersonnel']);
+        Route::post('/personnel/{publicId}/photo',                  [HrmsController::class, 'uploadPersonnelPhoto']);
+        Route::post('/personnel/{publicId}/grant-access',           [HrmsController::class, 'grantAccess']);
+        Route::patch('/personnel/{publicId}/department',             [HrmsController::class, 'assignDepartment']);
 
         // Leave types
         Route::get('/leave-types',              [LeaveController::class, 'leaveTypes']);
@@ -915,6 +915,11 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::delete('/incidents/{publicId}',          [ClinicController::class, 'destroyIncident']);
     });
     Route::get('/clinic/my-health-record', [ClinicController::class, 'myHealthRecord']);
+
+    // ============================================================
+    // DECISION SUPPORT SYSTEM (DSS) AI ROUTE
+    // ============================================================
+    Route::get('/dss/ai-analysis', [\App\Http\Controllers\DssController::class, 'getAiAnalysisSummary']);
 
     // ============================================================
     // DECISION SUPPORT SYSTEM (DSS)

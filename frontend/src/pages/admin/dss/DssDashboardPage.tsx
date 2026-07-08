@@ -1,19 +1,21 @@
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import type { DssDashboardData, EarlyWarning, DssRecommendation } from '@/types/dss';
 import {
-  Card, CardContent, CardHeader, CardTitle,
+  Card, CardContent, CardHeader, CardTitle, CardDescription
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AiInsightItem } from '@/components/AiInsightItem';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import {
   Users, TrendingUp, TrendingDown, AlertTriangle,
-  BookOpen, BarChart2, RefreshCw, CheckCircle,
+  BookOpen, BarChart2, RefreshCw, CheckCircle, Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -58,8 +60,55 @@ function KpiCard({
   );
 }
 
+type AiInsight = { title: string; body: string };
+
+/**
+ * Parses AI response text formatted as "**Title**: body" lines (an optional
+ * leading bullet is allowed) into structured items for AiInsightItem.
+ */
+const parseAiResponse = (text: string): AiInsight[] => {
+  if (!text) return [];
+
+  return text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.includes('**'))
+    .map((line) => {
+      const match = line.match(/^[-*\u2022]?\s*\*\*(.+?)\*\*:?\s*(.*)$/);
+      if (match) {
+        return { title: match[1].trim(), body: match[2].trim() };
+      }
+      // Fallback so a non-matching line never leaks raw asterisks into the UI
+      return { title: line.replace(/\*+/g, '').trim(), body: '' };
+    })
+    .filter((insight) => insight.title.length > 0);
+};
+
 export default function DssDashboardPage() {
   const queryClient = useQueryClient();
+
+  // --- AI State & Fetch Logic ---
+  const [aiData, setAiData] = useState<any>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const fetchAiMetrics = async () => {
+    setAiLoading(true);
+    try {
+      // Uses your existing Axios configuration (automatically handles tokens!)
+      const { data } = await api.get('/dss/ai-analysis');
+      setAiData(data);
+    } catch (error) {
+      console.error('Failed to fetch AI analytics:', error);
+      toast.error('Failed to load AI predictive insights');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAiMetrics();
+  }, []);
+  // ------------------------------
 
   const { data, isLoading } = useQuery<DssDashboardData>({
     queryKey: ['dss-dashboard'],
@@ -72,12 +121,12 @@ export default function DssDashboardPage() {
 
   const refreshMutation = useMutation({
     mutationFn: async () => {
-      const sy = data?.kpi ? undefined : undefined;
       await api.post('/admin/dss/warnings/evaluate');
       await api.post('/admin/dss/recommendations/generate');
+      await fetchAiMetrics(); // Also refresh AI data when clicked
     },
     onSuccess: () => {
-      toast.success('Warnings and recommendations refreshed');
+      toast.success('Dashboard data and insights refreshed');
       queryClient.invalidateQueries({ queryKey: ['dss-dashboard'] });
     },
     onError: () => toast.error('Failed to refresh'),
@@ -111,6 +160,9 @@ export default function DssDashboardPage() {
       ]
     : [];
 
+  // Parse the AI explanation into structured insight cards
+  const aiInsights = aiData?.explanation ? parseAiResponse(aiData.explanation) : [];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -122,15 +174,82 @@ export default function DssDashboardPage() {
         </div>
         <Button
           onClick={() => refreshMutation.mutate()}
-          disabled={refreshMutation.isPending}
+          disabled={refreshMutation.isPending || aiLoading}
           size="sm"
           variant="outline"
           className="gap-2"
         >
-          <RefreshCw className={cn('h-4 w-4', refreshMutation.isPending && 'animate-spin')} />
-          Refresh Warnings & Recommendations
+          <RefreshCw className={cn('h-4 w-4', (refreshMutation.isPending || aiLoading) && 'animate-spin')} />
+          Refresh Dashboard Data
         </Button>
       </div>
+
+      {/* --- AI Decision Support Module --- */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Card className="border-primary/20 bg-gradient-to-br from-background to-primary/5">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div>
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+                AI Predictive Insights
+              </CardTitle>
+              <CardDescription>Automated contextual status interpretation</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent className="text-sm pt-4">
+            {aiLoading && !aiData ? (
+               <div className="space-y-2">
+                 <Skeleton className="h-4 w-full" />
+                 <Skeleton className="h-4 w-[90%]" />
+                 <Skeleton className="h-4 w-[80%]" />
+               </div>
+            ) : aiData?.explanation ? (
+              aiInsights.length > 0 ? (
+                <div className="space-y-2">
+                  {aiInsights.map((insight, idx) => (
+                    <AiInsightItem key={idx} title={insight.title} body={insight.body} />
+                  ))}
+                </div>
+              ) : (
+                <div className="prose dark:prose-invert max-w-none whitespace-pre-line leading-relaxed">
+                  {aiData.explanation}
+                </div>
+              )
+            ) : (
+              <p className="text-muted-foreground italic">No analysis executed for current parameters.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-green-600" />
+              Enrollment Forecast Projections
+            </CardTitle>
+            <CardDescription>Algorithmic calculation for upcoming period</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col justify-center py-6 text-center">
+            {aiLoading && !aiData ? (
+               <Skeleton className="h-16 w-24 mx-auto mb-2" />
+            ) : aiData?.projections?.projected_total ? (
+              <div>
+                <span className="text-5xl font-black tracking-tight text-primary">
+                  {aiData.projections.projected_total}
+                </span>
+                <p className="mt-2 text-sm text-muted-foreground font-medium">
+                  Expected student volume next term ({aiData.projections.confidence_rate}% confidence)
+                </p>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm italic">
+                {aiData?.projections?.status || 'Analyzing historical records...'}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+      {/* ----------------------------------- */}
 
       {/* KPI Cards */}
       {isLoading ? (
@@ -362,6 +481,7 @@ export default function DssDashboardPage() {
                 ))}
               </div>
             )}
+            
           </CardContent>
         </Card>
       </div>
