@@ -4,13 +4,12 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Cache; // <--- Added this
+use Illuminate\Support\Facades\Cache;
 
 class DssAiEngineService
 {
     public function generateEnrollmentProjections()
     {
-        // Enrollment projections change less often, we can cache this too for 1 hour
         return Cache::remember('dss_enrollment_projection', 3600, function () {
             try {
                 $historical = DB::table('student_assessments')
@@ -52,7 +51,11 @@ class DssAiEngineService
                     'status' => 'Success'
                 ];
             } catch (\Exception $e) {
-                return ['projected_total' => 16, 'confidence_rate' => 50, 'status' => 'Calculation error.'];
+                return [
+                    'projected_total' => 16,
+                    'confidence_rate' => 50,
+                    'status' => 'Notice: Projection calculation offline. Technical Details: ' . $e->getMessage()
+                ];
             }
         });
     }
@@ -70,7 +73,7 @@ class DssAiEngineService
         }
 
         if (!$apiKey) {
-            return "💡 **System Insight Panel**\n\nGroq API key not found.";
+            return "💡 **System Insight Panel**\n\nGroq API key not found inside the backend .env configuration file.";
         }
 
         $prompt = "You are an executive AI consultant for a school Decision Support System. "
@@ -99,11 +102,11 @@ class DssAiEngineService
                 return $content;
             }
 
-            // If we hit a rate limit (429), don't cache!
-            return "⚠️ Groq API Error (" . $response->status() . "): System is busy, please try refreshing in a moment.";
+            return "⚠️ Groq API Error (" . $response->status() . "): " . $response->body();
             
         } catch (\Exception $e) {
-            return "Notice: AI module offline.";
+            // FIXED HERE: This will now pass back the actual system crash reason directly to the text UI
+            return "Notice: AI module offline. Technical Details: " . $e->getMessage();
         }
     }
 }
