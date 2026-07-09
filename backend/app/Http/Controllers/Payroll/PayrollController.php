@@ -289,8 +289,8 @@ class PayrollController extends Controller
             ->where('payroll_period_id', $period->id)
             ->firstOrFail();
 
-        if (!in_array($period->status, ['draft'])) {
-            return response()->json(['message' => 'Period is locked.'], 422);
+        if (!in_array($period->status, ['draft', 'for_approval', 'approved', 'posted'])) {
+            return response()->json(['message' => 'Period is locked for adjustments.'], 422);
         }
 
         if (!$period->template->allow_individual_override) {

@@ -62,8 +62,11 @@ export default function TeacherFlashcardNewPage() {
 
   const aiMutation = useMutation({
     mutationFn: (payload: object) => api.post('/teacher/flashcards/generate-ai', payload),
-    onSuccess: () => toast.info('AI generation is not yet configured.'),
-    onError: (err: any) => toast.info(err?.response?.data?.message ?? 'AI generation not available yet.'),
+    onSuccess: (res) => {
+      toast.success('AI Flashcard deck generated successfully!');
+      navigate(`/teacher/flashcards/${res.data.data.public_id}`);
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? 'AI generation failed.'),
   });
 
   // ── Card editing helpers ──────────────────────────────────────────────────

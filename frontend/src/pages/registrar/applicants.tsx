@@ -58,6 +58,7 @@ type RequirementChecklist = {
   stud_req_public_id: string | null;
   req_status: string;
   file_path: string | null;
+  file_url?: string | null;
   remarks: string | null;
 };
 
@@ -216,9 +217,9 @@ function RequirementVerifyRow({
               {req.req_status}
             </Badge>
 
-            {req.file_path && (
+            {req.file_url && (
               <a
-                href={req.file_path}
+                href={req.file_url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-primary hover:underline flex items-center gap-1 whitespace-nowrap"
@@ -263,7 +264,7 @@ function RequirementVerifyRow({
               </Button>
             )}
 
-            {req.submitted && !req.file_path && (
+            {req.submitted && !req.file_url && (
               <>
                 <input
                   ref={fileRef}

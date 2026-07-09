@@ -275,6 +275,7 @@ export interface RequirementChecklist extends Requirement {
   stud_req_public_id: string | null;
   req_status: string;
   file_path: string | null;
+  file_url?: string | null;
   remarks: string | null;
 }
 

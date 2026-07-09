@@ -17,8 +17,23 @@ class StudentRequirement extends Model
         'status', 'file_path', 'remarks',
     ];
 
+    protected $appends = [
+        'file_url',
+    ];
+
     public function requirement(): BelongsTo
     {
         return $this->belongsTo(Requirement::class, 'require_id', 'require_id');
+    }
+
+    public function getFileUrlAttribute()
+    {
+        if (!$this->file_path) return null;
+        
+        return \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'files.requirement.download',
+            now()->addHours(1),
+            ['publicId' => $this->public_id]
+        );
     }
 }

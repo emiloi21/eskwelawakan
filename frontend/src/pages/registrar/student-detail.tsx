@@ -634,9 +634,9 @@ export default function StudentDetailPage() {
 
                         {hasRecord && (
                           <div className="flex items-center gap-2 flex-shrink-0 ml-7 sm:ml-0">
-                            {req.file_path ? (
+                            {req.file_url ? (
                               <a
-                                href={`${(import.meta.env.VITE_API_URL || '/api').replace('/api', '')}/storage/${req.file_path}`}
+                                href={req.file_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"

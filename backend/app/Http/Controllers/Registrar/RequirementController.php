@@ -202,13 +202,13 @@ class RequirementController extends Controller
         $sr = StudentRequirement::findByPublicIdOrFail($studReqId);
 
         // Delete old file if exists
-        if ($sr->file_path && Storage::disk('public')->exists($sr->file_path)) {
-            Storage::disk('public')->delete($sr->file_path);
+        if ($sr->file_path && Storage::disk('local')->exists($sr->file_path)) {
+            Storage::disk('local')->delete($sr->file_path);
         }
 
         $path = $request->file('file')->store(
             'requirements/' . $sr->reg_id,
-            'public'
+            'local'
         );
 
         $sr->update([

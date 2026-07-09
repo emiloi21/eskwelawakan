@@ -28,7 +28,9 @@ type EnrollmentData = {
 
 type Submission = {
   stud_reqs_id: number; public_id: string; status: string;
-  file_path: string | null; remarks: string | null;
+  file_path: string | null;
+  file_url?: string | null;
+  remarks: string | null;
 };
 
 type Requirement = {
@@ -129,9 +131,9 @@ function RequirementRow({ req }: { req: Requirement }) {
               {req.submission.status}
             </Badge>
           )}
-          {req.submission?.file_path && (
+          {req.submission?.file_url && (
             <a
-              href={req.submission.file_path}
+              href={req.submission.file_url}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-primary hover:underline flex items-center gap-1"

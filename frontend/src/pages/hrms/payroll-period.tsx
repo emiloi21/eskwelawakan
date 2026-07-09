@@ -413,7 +413,7 @@ export default function PayrollPeriodPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-1">
-                              {(isDraft || isForApproval) && (
+                              {true && (
                                 <Button variant="ghost" size="icon" onClick={() => setOverrideItem(item)}>
                                   <Pencil className="h-4 w-4" />
                                 </Button>

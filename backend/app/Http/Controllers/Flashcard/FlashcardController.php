@@ -363,12 +363,54 @@ class FlashcardController extends Controller
             'count' => 'integer|min:5|max:50',
         ]);
 
-        // TODO: Replace with real OpenAI / Gemini API call.
-        // Expected response: {"cards":[{"front":"...","back":"..."},...]}
-        return response()->json([
-            'stub'    => true,
-            'message' => 'AI generation is not yet configured. An AI API key is required.',
-        ], 501);
+        $apiKey = env('GEMINI_API_KEY');
+        if (empty($apiKey)) {
+            return response()->json([
+                'message' => 'AI generation is not configured. GEMINI_API_KEY is missing.',
+            ], 501);
+        }
+
+        $topic = $request->input('topic');
+        $count = $request->input('count', 10);
+
+        $prompt = "Generate $count educational flashcards about '$topic'. " .
+                  "Return ONLY a raw JSON array (no markdown block) where each element is an object with 'front' (the question or term) and 'back' (the answer or definition).";
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::withHeaders([
+                'Content-Type' => 'application/json',
+            ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$apiKey}", [
+                'contents' => [
+                    [
+                        'parts' => [
+                            ['text' => $prompt]
+                        ]
+                    ]
+                ],
+                'generationConfig' => [
+                    'temperature' => 0.7,
+                    'responseMimeType' => 'application/json',
+                ]
+            ]);
+
+            if ($response->failed()) {
+                \Illuminate\Support\Facades\Log::error('Gemini API Error: ' . $response->body());
+                return response()->json(['message' => 'Failed to generate flashcards via AI.'], 500);
+            }
+
+            $data = $response->json();
+            $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? '';
+            
+            $cards = json_decode($text, true);
+            if (!is_array($cards)) {
+                return response()->json(['message' => 'Failed to parse AI response.'], 500);
+            }
+
+            return response()->json(['cards' => $cards]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('AI Generation Exception: ' . $e->getMessage());
+            return response()->json(['message' => 'An error occurred during AI generation.'], 500);
+        }
     }
 
     // ── Quiz Results (graded view for teacher) ─────────────────────────────────

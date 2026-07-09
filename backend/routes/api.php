@@ -107,6 +107,11 @@ Route::prefix('public')->group(function () {
 // Public Download Center (no auth — publicly visible files)
 Route::get('/downloads/public', [DownloadController::class, 'publicList']);
 
+// Secure File Downloads (signed URL)
+Route::get('/files/requirements/{publicId}', [\App\Http\Controllers\FileDownloadController::class, 'downloadRequirement'])
+    ->name('files.requirement.download')
+    ->middleware('signed');
+
 // Public enrollment application
 Route::get('/apply-info', [EnrollmentApplicationController::class, 'info']);
 Route::post('/apply', [EnrollmentApplicationController::class, 'apply'])->middleware('throttle:60,1');

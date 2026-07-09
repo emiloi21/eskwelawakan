@@ -29,6 +29,7 @@ import {
   Briefcase,
   MessageSquare,
   Users,
+  CalendarRange,
 } from 'lucide-react';
 import { SiteHeader } from '@/components/site-header';
 import { ImpersonationBanner } from '@/components/impersonation-banner';
@@ -55,6 +56,13 @@ export const teacherCategories: NavCategory[] = [
       { to: '/teacher/supply-requests', label: 'Supply Requests' },
       { to: '/teacher/inventory-tasks', label: 'Inventory Tasks' },
       { to: '/teacher/clearance', label: 'Clearance' },
+    ],
+  },
+  {
+    label: 'HR / Leaves',
+    icon: CalendarRange,
+    items: [
+      { to: '/teacher/leaves', label: 'My Leave Applications' },
     ],
   },
   { label: 'Messages', icon: MessageSquare, to: '/teacher/messages', end: true, items: [] },

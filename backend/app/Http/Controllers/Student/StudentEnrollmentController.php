@@ -142,11 +142,11 @@ class StudentEnrollmentController extends Controller
             ->where('student_id', $student->student_id)
             ->firstOrFail();
 
-        if ($sr->file_path && Storage::disk('public')->exists($sr->file_path)) {
-            Storage::disk('public')->delete($sr->file_path);
+        if ($sr->file_path && Storage::disk('local')->exists($sr->file_path)) {
+            Storage::disk('local')->delete($sr->file_path);
         }
 
-        $path = $request->file('file')->store('requirements/' . $sr->reg_id, 'public');
+        $path = $request->file('file')->store('requirements/' . $sr->reg_id, 'local');
 
         $sr->update(['file_path' => $path, 'status' => 'For Validation']);
 

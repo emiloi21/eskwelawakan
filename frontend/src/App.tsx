@@ -94,6 +94,7 @@ const TeacherFlashcardNewPage = lazy(() => import('@/pages/teacher/flashcard-new
 const TeacherFlashcardDetailPage = lazy(() => import('@/pages/teacher/flashcard-detail'));
 const TeacherFlashcardResultsPage = lazy(() => import('@/pages/teacher/flashcard-results'));
 const TeacherQuizBuilderPage = lazy(() => import('@/pages/teacher/quiz-builder'));
+const TeacherLeavesPage = lazy(() => import('@/pages/teacher/leaves'));
 
 // Student portal pages
 const StudentDashboard = lazy(() => import('@/pages/student/dashboard'));
@@ -385,6 +386,7 @@ function App() {
             <Route path="supply-requests" element={<MySupplyRequestsPage />} />
             <Route path="inventory-tasks" element={<MyInventoryTasksPage />} />
             <Route path="clearance" element={<ClearancePage />} />
+            <Route path="leaves" element={<TeacherLeavesPage />} />
             <Route path="downloads" element={<SharedDownloadsPage />} />
             <Route path="messages" element={<MessagesPage />} />
             <Route path="profile" element={<ProfilePage />} />
