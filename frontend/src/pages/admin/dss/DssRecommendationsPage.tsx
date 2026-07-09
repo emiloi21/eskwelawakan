@@ -53,15 +53,15 @@ function RecsTable({
     }),
     colHelper.accessor('recommendation_text', {
       header: 'Recommendation',
-      cell: info => <span className="text-xs">{info.getValue()}</span>,
+      cell: info => <div className="text-xs whitespace-normal min-w-[250px] max-w-[400px] leading-relaxed">{info.getValue()}</div>,
     }),
     colHelper.accessor('basis', {
       header: 'Basis',
-      cell: info => <span className="text-xs text-muted-foreground">{info.getValue()}</span>,
+      cell: info => <div className="text-xs text-muted-foreground whitespace-normal min-w-[200px] max-w-[300px] leading-relaxed">{info.getValue()}</div>,
     }),
     colHelper.accessor('generated_at', {
       header: 'Generated',
-      cell: info => <span className="text-xs text-muted-foreground">{format(new Date(info.getValue()), 'MMM d, yyyy')}</span>,
+      cell: info => <span className="text-xs text-muted-foreground whitespace-nowrap">{format(new Date(info.getValue()), 'MMM d, yyyy')}</span>,
     }),
     colHelper.accessor('is_actioned', {
       header: 'Status',

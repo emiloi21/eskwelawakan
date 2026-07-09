@@ -53,10 +53,15 @@ function WarningsTable({
       ),
     }),
     colHelper.accessor('warning_type', { header: 'Type' }),
-    colHelper.accessor('message',      { header: 'Message', cell: info => <span className="text-xs">{info.getValue()}</span> }),
+    colHelper.accessor('message', {
+      header: 'Message',
+      // Added max-w and whitespace-normal to force text wrapping
+      cell: info => <div className="text-xs whitespace-normal min-w-[250px] max-w-[500px] leading-relaxed">{info.getValue()}</div> 
+    }),
     colHelper.accessor('triggered_at', {
       header: 'Triggered',
-      cell: info => <span className="text-xs text-muted-foreground">{format(new Date(info.getValue()), 'MMM d, yyyy HH:mm')}</span>,
+      // Added whitespace-nowrap to keep the date intact
+      cell: info => <span className="text-xs text-muted-foreground whitespace-nowrap">{format(new Date(info.getValue()), 'MMM d, yyyy HH:mm')}</span>,
     }),
     colHelper.accessor('is_acknowledged', {
       header: 'Acknowledged',
